@@ -8,8 +8,9 @@ from sqlmodel import Session, select
 from app.database import get_session
 from app.config import settings
 from app.models import Garden, Planting, PlantType, PlantingEvent
+from app.security import require_auth
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_auth)])
 
 SYSTEM_PROMPT = """Eres un agrónomo experto especializado en horticultura mediterránea, \
 con amplio conocimiento en cultivos de huerta, fitosanitarios, riego, suelos y temporadas. \

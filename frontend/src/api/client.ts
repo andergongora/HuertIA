@@ -1,9 +1,19 @@
 import type { Garden, Row, PlantType, Planting, PlantingEvent, Expense } from '../types'
+import { stackApp } from '../main'
 
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
+async function authHeaders(): Promise<Record<string, string>> {
+  const user = await stackApp.getUser()
+  const tokens = await user?.getAuthJson()
+  const base = { 'Content-Type': 'application/json' }
+  return tokens?.accessToken
+    ? { ...base, Authorization: `Bearer ${tokens.accessToken}` }
+    : base
+}
+
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`)
+  const res = await fetch(`${BASE}${path}`, { headers: await authHeaders() })
   if (!res.ok) throw new Error(`GET ${path} → ${res.status}`)
   return res.json()
 }
@@ -11,7 +21,7 @@ async function get<T>(path: string): Promise<T> {
 async function post<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await authHeaders(),
     body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error(`POST ${path} → ${res.status}`)
@@ -21,7 +31,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 async function patch<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await authHeaders(),
     body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error(`PATCH ${path} → ${res.status}`)
@@ -29,7 +39,7 @@ async function patch<T>(path: string, body: unknown): Promise<T> {
 }
 
 async function del(path: string): Promise<void> {
-  const res = await fetch(`${BASE}${path}`, { method: 'DELETE' })
+  const res = await fetch(`${BASE}${path}`, { method: 'DELETE', headers: await authHeaders() })
   if (!res.ok) throw new Error(`DELETE ${path} → ${res.status}`)
 }
 
@@ -90,9 +100,10 @@ export async function streamChat(
   messages: { role: string; content: string }[],
   gardenId?: string
 ): Promise<Response> {
+  const headers = await authHeaders()
   return fetch(`${BASE}/chat/stream`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ messages, garden_id: gardenId ?? null }),
   })
 }

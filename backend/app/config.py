@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     app_name: str = "HuertAI"
 
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
+    stack_jwks_url: str = ""  # https://api.stack-auth.com/api/v1/projects/{id}/.well-known/jwks.json
 
     model_config = {"env_file": ".env"}
 
