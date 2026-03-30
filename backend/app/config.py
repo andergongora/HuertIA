@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     debug: bool = False
     app_name: str = "HuertAI"
 
+    cors_origins: str = "http://localhost:3000,http://localhost:5173"
+
     model_config = {"env_file": ".env"}
 
 

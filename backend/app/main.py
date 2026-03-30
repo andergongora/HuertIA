@@ -22,14 +22,16 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=[o.strip() for o in settings.cors_origins.split(",")],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Servir fotos estáticas si el directorio existe
 if os.path.isdir(settings.photos_directory):
-    app.mount("/photos", StaticFiles(directory=settings.photos_directory), name="photos")
+    app.mount(
+        "/photos", StaticFiles(directory=settings.photos_directory), name="photos"
+    )
 
 app.include_router(gardens.router, tags=["gardens"])
 app.include_router(crops.router, tags=["plantings"])
