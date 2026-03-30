@@ -85,3 +85,14 @@ export const deleteExpense = (id: string) => del(`/expenses/${id}`)
 // Chat
 export const sendChatMessage = (message: string, gardenId?: string) =>
   post<{ reply: string }>('/chat', { message, garden_id: gardenId ?? null })
+
+export async function streamChat(
+  messages: { role: string; content: string }[],
+  gardenId?: string
+): Promise<Response> {
+  return fetch(`${BASE}/chat/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages, garden_id: gardenId ?? null }),
+  })
+}
