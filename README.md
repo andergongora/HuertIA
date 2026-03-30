@@ -8,7 +8,7 @@ Aplicación web para gestionar tu huerta doméstica. Registra qué plantas tiene
 
 ### Parcela interactiva
 - **Grid visual** de filas × huecos que representa tu huerta real
-- Cada celda muestra el emoji de la planta, el nombre y la variedad
+- Cada celda muestra el emoji de la planta, el nombre, la variedad y la cuenta regresiva de cosecha
 - Click en hueco vacío → asignar cultivo; click en planta → ver su detalle
 - Añadir / eliminar filas y huecos con botones +/−
 - Reordenar filas con flechas ↑/↓ (con confirmación)
@@ -17,9 +17,10 @@ Aplicación web para gestionar tu huerta doméstica. Registra qué plantas tiene
 
 ### Cultivos (Plantings)
 - Registro de tipo de planta, variedad, origen (semilla / trasplante / esqueje) y fecha de plantación
+- **Color personalizado por tipo de planta**: selector de colores con palabras en su propio color ("Rojo", "Azul"...) y paleta avanzada libre
+- **Días hasta cosecha por planta individual**: se hereda del tipo pero se puede sobreescribir al plantar
 - Estados: **activo**, **cosechado**, **perdido** — cambiables con un click
-- Estimación de fecha de cosecha basada en `días_hasta_cosecha` del tipo de planta
-- Cuenta regresiva visible en el sidebar ("3d", "¡Lista!")
+- Estimación de fecha de cosecha con cuenta regresiva visible en el grid y sidebar
 
 ### Eventos e historial
 - Cuatro tipos de evento: **nota libre**, **cosecha**, **pérdida**, **foto**
@@ -29,23 +30,24 @@ Aplicación web para gestionar tu huerta doméstica. Registra qué plantas tiene
 
 ### Gastos
 - Registro por categoría: semillas, herramientas, abono, riego, pesticidas, estructura, alquiler, otros
-- Filtros por huerta, categoría y rango de fechas
 - Total acumulado visible en la pestaña de gastos
 
 ### Dashboard
 - **8 KPIs**: total gastado, kg cosechados, tasa de éxito, coste/kg, cultivos activos, eventos totales, gastos registrados, tipos de planta
-- Gráfico de pastel: estado de los cultivos (activos / cosechados / perdidos)
-- Lista de últimas cosechas con cantidad y fecha
-- Barras de actividad mensual (eventos registrados por mes)
-- Barras de cosecha por tipo de cultivo
-- Barras horizontales de gasto por categoría + línea de gasto acumulado
-- Tabla resumen por cultivo: estado, eventos, kg, último evento
+- Gráfico de pastel: estado de los cultivos
+- Últimas cosechas, actividad mensual, cosecha por cultivo, gasto por categoría
 
 ### Asistente de IA
 - Chat en lenguaje natural con un agrónomo experto en horticultura mediterránea
+- **Conversación multi-turno**: el asistente recuerda los mensajes anteriores
+- **Streaming de respuestas**: el texto aparece palabra a palabra
+- **Renderizado Markdown**: listas, negritas y formato en las respuestas
 - Contexto automático de tu huerta (cultivos activos y eventos recientes)
-- Sugerencias de preguntas frecuentes en pantalla vacía
-- Dos backends de IA configurables (ver sección de configuración)
+- Tres backends de IA configurables: Claude CLI, Anthropic API y **Google Gemini**
+
+### Autenticación
+- Login y registro obligatorio con **Neon Auth** (Stack Auth)
+- Todos los endpoints protegidos con JWT
 
 ---
 
@@ -55,14 +57,16 @@ Aplicación web para gestionar tu huerta doméstica. Registra qué plantas tiene
 |------|-----------|
 | Frontend | React 18 + TypeScript + Tailwind CSS + Vite |
 | Backend | FastAPI (Python 3.12) |
-| Base de datos | PostgreSQL 16 |
+| Base de datos | PostgreSQL (Neon) |
 | ORM | SQLModel + SQLAlchemy |
+| Autenticación | Neon Auth (Stack Auth) + PyJWT |
 | Gráficos | Recharts |
 | Enrutamiento | React Router v6 |
 | IA (opción A) | `claude` CLI — suscripción Pro, sin coste de API |
 | IA (opción B) | Anthropic API — pago por token |
-| Notificaciones | Telegram Bot API |
-| Deploy | Docker Compose |
+| IA (opción C) | Google Gemini API |
+| Notificaciones | Telegram Bot API (opcional) |
+| Deploy | Render (backend) + Vercel (frontend) + Neon (BD) |
 
 ---
 
@@ -74,23 +78,25 @@ HuertAI/
 │   ├── app/
 │   │   ├── config.py          # Configuración via variables de entorno
 │   │   ├── database.py        # Engine SQLAlchemy + sesiones
-│   │   ├── models.py          # 5 modelos: Garden, Row, PlantType, Planting, PlantingEvent, Expense
+│   │   ├── models.py          # Garden, Row, PlantType, Planting, PlantingEvent, Expense
 │   │   ├── main.py            # FastAPI app, CORS, static files
+│   │   ├── security.py        # Validación JWT con JWKS de Neon Auth
 │   │   ├── routes/
 │   │   │   ├── gardens.py     # Gardens, Rows, PlantTypes
 │   │   │   ├── crops.py       # Plantings CRUD
 │   │   │   ├── events.py      # PlantingEvents + llamada IA
 │   │   │   ├── expenses.py    # Expenses CRUD
-│   │   │   └── chat.py        # Endpoint del asistente IA
+│   │   │   └── chat.py        # Asistente IA (single + streaming)
 │   │   └── services/
-│   │       ├── ai_processor.py   # Procesado de notas (CLI o API)
+│   │       ├── ai_processor.py   # Procesado de notas (CLI / Anthropic / Gemini)
 │   │       └── notifications.py  # Telegram
 │   ├── pyproject.toml
-│   ├── .env                   # Variables de entorno (no commitear)
-│   └── Dockerfile
+│   ├── requirements.txt       # Para despliegue en Render
+│   ├── render.yaml            # Configuración de despliegue Render
+│   └── .env                   # Variables de entorno (no commitear)
 ├── frontend/
 │   ├── src/
-│   │   ├── api/client.ts      # Cliente fetch tipado para todos los endpoints
+│   │   ├── api/client.ts      # Cliente fetch tipado con JWT automático
 │   │   ├── types/index.ts     # Interfaces TypeScript
 │   │   ├── components/
 │   │   │   ├── GardenGrid.tsx
@@ -99,20 +105,18 @@ HuertAI/
 │   │   │   ├── CropModal.tsx
 │   │   │   ├── EventForm.tsx
 │   │   │   ├── EventTimeline.tsx
-│   │   │   ├── ExpenseForm.tsx
-│   │   │   └── Dashboard.tsx
+│   │   │   └── ExpenseForm.tsx
 │   │   ├── pages/
 │   │   │   ├── GardenPage.tsx
 │   │   │   ├── CropDetailPage.tsx
 │   │   │   ├── DashboardPage.tsx
 │   │   │   └── ChatPage.tsx
-│   │   ├── App.tsx
-│   │   └── main.tsx
+│   │   ├── App.tsx            # Rutas protegidas con ProtectedRoute
+│   │   └── main.tsx           # StackProvider (Neon Auth)
+│   ├── vercel.json            # Configuración de despliegue Vercel
 │   ├── package.json
 │   ├── tailwind.config.js
-│   ├── vite.config.ts
-│   └── Dockerfile
-└── docker-compose.yml
+│   └── vite.config.ts
 ```
 
 ---
@@ -122,47 +126,22 @@ HuertAI/
 ```
 Garden          → tiene N Rows y N Plantings
 Row             → pertenece a un Garden; tiene slot_count huecos
-PlantType       → catálogo reutilizable (tomate cherry, lechuga hoja de roble…)
-Planting        → cultivo concreto en un hueco (garden + row + slot_position)
+PlantType       → catálogo reutilizable (tomate cherry, lechuga…) con color y días_hasta_cosecha
+Planting        → cultivo concreto en un hueco; puede sobreescribir días_hasta_cosecha
 PlantingEvent   → nota / cosecha / pérdida / foto sobre un Planting
 Expense         → gasto asociado a un Garden
 ```
 
 ---
 
-## Requisitos previos
-
-- **Python 3.12+** con [uv](https://docs.astral.sh/uv/)
-- **Node.js 18+** con npm
-- **PostgreSQL 16** (local o via Docker)
-- **claude CLI** instalado y con sesión activa si usas `AI_BACKEND=cli`
-
----
-
 ## Puesta en marcha en local
 
-### 1. Base de datos
+### Requisitos previos
+- **Python 3.12+** con [uv](https://docs.astral.sh/uv/)
+- **Node.js 18+** con npm
+- **PostgreSQL** local o conexión a Neon
 
-Con Docker (recomendado):
-
-```bash
-docker run -d --name huertai-db \
-  -e POSTGRES_DB=huertai \
-  -e POSTGRES_USER=huertai \
-  -e POSTGRES_PASSWORD=huertai \
-  -p 5432:5432 \
-  postgres:16-alpine
-```
-
-O crea la base de datos manualmente en tu PostgreSQL local:
-
-```sql
-CREATE DATABASE huertai;
-CREATE USER huertai WITH PASSWORD 'huertai';
-GRANT ALL PRIVILEGES ON DATABASE huertai TO huertai;
-```
-
-### 2. Backend
+### 1. Backend
 
 ```bash
 cd backend
@@ -171,16 +150,15 @@ cd backend
 uv sync
 
 # Configurar variables de entorno
-cp .env.example .env   # o edita .env directamente
+cp .env.example .env   # editar con tus valores
 
 # Arrancar (crea las tablas automáticamente al iniciar)
 uv run uvicorn app.main:app --reload --port 8000
 ```
 
-El backend queda disponible en `http://localhost:8000`.
-Documentación interactiva (Swagger): `http://localhost:8000/docs`
+Documentación interactiva: `http://localhost:8000/docs`
 
-### 3. Frontend
+### 2. Frontend
 
 ```bash
 cd frontend
@@ -188,7 +166,12 @@ cd frontend
 # Instalar dependencias
 npm install
 
-# Arrancar servidor de desarrollo
+# Configurar variables de entorno
+# Crear frontend/.env con:
+# VITE_API_URL=http://localhost:8000
+# VITE_STACK_PROJECT_ID=xxx
+# VITE_STACK_PUBLISHABLE_CLIENT_KEY=xxx
+
 npm run dev
 ```
 
@@ -196,124 +179,85 @@ La app queda disponible en `http://localhost:3000`.
 
 ---
 
-## Despliegue con Docker Compose
-
-```bash
-# En la raíz del proyecto
-docker compose up -d
-```
-
-Servicios expuestos:
-- Frontend: `http://localhost:3000`
-- Backend: `http://localhost:8000`
-- PostgreSQL: `localhost:5432`
-
----
-
-## Configuración
-
-Edita `backend/.env`:
+## Configuración (`backend/.env`)
 
 ```env
-# ── Base de datos ──────────────────────────────────────────────
-DATABASE_URL=postgresql://huertai:huertai@localhost:5432/huertai
+# Base de datos
+DATABASE_URL=postgresql://user:pass@host/db?sslmode=require
 
-# ── Almacenamiento de fotos ────────────────────────────────────
-PHOTOS_DIRECTORY=photos
-
-# ── Backend de IA ──────────────────────────────────────────────
-# cli → usa el CLI de Claude con tu suscripción Pro (sin coste de API)
-# api → usa la Anthropic API de pago
-AI_BACKEND=cli
-
-# Solo necesario si AI_BACKEND=api
-ANTHROPIC_API_KEY=
-
-# Modelo a usar (solo aplica en modo api)
-AI_MODEL=claude-haiku-4-5-20251001
+# Backend de IA: cli | api | gemini
+AI_BACKEND=gemini
+GEMINI_API_KEY=            # si AI_BACKEND=gemini
+ANTHROPIC_API_KEY=         # si AI_BACKEND=api
+AI_MODEL=gemini-2.0-flash
 AI_MAX_TOKENS=512
 
-# ── Notificaciones Telegram (opcional) ────────────────────────
+# Autenticación (Neon Auth)
+STACK_JWKS_URL=https://api.stack-auth.com/api/v1/projects/xxx/.well-known/jwks.json
+
+# CORS (separados por comas)
+CORS_ORIGINS=https://tu-app.vercel.app,http://localhost:3000,http://localhost:5173
+
+# Telegram (opcional)
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
 
-# ── App ────────────────────────────────────────────────────────
+# App
 DEBUG=false
 APP_NAME=HuertAI
 ```
 
-### Backend de IA: CLI vs API
+### Backends de IA
 
-| | `AI_BACKEND=cli` | `AI_BACKEND=api` |
-|-|---|---|
-| Coste | Gratis (incluido en suscripción Pro) | Pago por token |
-| Requisito | `claude` CLI instalado + `claude login` | `ANTHROPIC_API_KEY` válida |
-| Latencia | Un poco mayor (subprocess) | Baja |
-| Recomendado | Uso personal / home server | Producción multi-usuario |
+| | `cli` | `api` | `gemini` |
+|-|---|---|---|
+| Coste | Gratis (Pro) | Pago por token | Pago por token (muy bajo) |
+| Requisito | Claude CLI instalado | `ANTHROPIC_API_KEY` | `GEMINI_API_KEY` |
+| Recomendado | Desarrollo local | Producción | Producción |
 
-Para activar el modo CLI, asegúrate de tener Claude Code instalado y sesión iniciada:
+---
 
-```bash
-# Instalar Claude Code CLI
-npm install -g @anthropic-ai/claude-code
+## Despliegue (Neon + Render + Vercel)
 
-# Autenticarse con tu cuenta Pro
-claude login
-```
+### Base de datos — Neon
+Crea un proyecto en [neon.tech](https://neon.tech). Copia la connection string con `?sslmode=require`.
+
+### Backend — Render
+1. Conecta el repo, Root Directory: `backend`
+2. Build Command: `pip install -r requirements.txt`
+3. Start Command: `python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+4. Variables de entorno: `DATABASE_URL`, `GEMINI_API_KEY`, `AI_BACKEND`, `AI_MODEL`, `CORS_ORIGINS`, `STACK_JWKS_URL`
+
+### Frontend — Vercel
+1. Conecta el repo, Root Directory: `frontend`, Framework: Vite
+2. Variables de entorno: `VITE_API_URL`, `VITE_STACK_PROJECT_ID`, `VITE_STACK_PUBLISHABLE_CLIENT_KEY`
 
 ---
 
 ## API REST — Endpoints principales
 
+Todos los endpoints (excepto `/health`) requieren header `Authorization: Bearer <token>`.
+
 | Método | Ruta | Descripción |
 |--------|------|-------------|
+| `GET` | `/health` | Estado del servicio |
 | `POST` | `/gardens` | Crear huerta |
 | `GET` | `/gardens` | Listar huertas |
-| `GET` | `/gardens/{id}` | Detalle de huerta |
 | `POST` | `/gardens/{id}/rows` | Añadir fila |
-| `PATCH` | `/rows/{id}` | Actualizar fila (slot_count, position) |
-| `DELETE` | `/rows/{id}` | Eliminar fila |
+| `PATCH` | `/rows/{id}` | Actualizar fila |
 | `GET` | `/plant-types` | Catálogo de tipos de planta |
 | `POST` | `/plant-types` | Crear tipo de planta |
-| `POST` | `/plantings` | Plantar (asignar cultivo a hueco) |
-| `GET` | `/plantings?garden_id=` | Listar cultivos de una huerta |
-| `PATCH` | `/plantings/{id}` | Actualizar estado, posición, etc. |
+| `PATCH` | `/plant-types/{id}` | Actualizar tipo (color, días…) |
+| `POST` | `/plantings` | Plantar |
+| `GET` | `/plantings?garden_id=` | Listar cultivos |
+| `PATCH` | `/plantings/{id}` | Actualizar estado, días, etc. |
 | `DELETE` | `/plantings/{id}` | Eliminar cultivo |
-| `POST` | `/plantings/{id}/events` | Registrar evento (nota/cosecha/foto) |
+| `POST` | `/plantings/{id}/events` | Registrar evento |
 | `GET` | `/plantings/{id}/events` | Historial de eventos |
 | `POST` | `/expenses` | Registrar gasto |
 | `GET` | `/expenses?garden_id=` | Listar gastos |
-| `DELETE` | `/expenses/{id}` | Eliminar gasto |
-| `POST` | `/chat` | Asistente IA |
-| `GET` | `/health` | Estado del servicio |
-
----
-
-## Rutas del frontend
-
-| Ruta | Página |
-|------|--------|
-| `/` | Redirige a `/gardens` |
-| `/gardens` | Selector / creación de huerta |
-| `/gardens/:id` | Vista principal: grid de la parcela y gastos |
-| `/plantings/:id` | Detalle de cultivo: historial y formulario de eventos |
-| `/dashboard` | Analítica: KPIs, gráficos y tabla resumen |
-| `/chat` | Asistente de IA |
-
----
-
-## Tipos de planta sugeridos
-
-| Nombre | Variedad | Días hasta cosecha (trasplante) |
-|--------|----------|--------------------------------|
-| tomate | cherry | 70 |
-| fresa | fresón | 55 |
-| lechuga | hoja de roble | 40 |
-| pimiento | padrón | 65 |
-| pepino | — | 50 |
-| berenjena | — | 70 |
-| zanahoria | — | 75 |
-| cebolla | — | 90 |
+| `POST` | `/chat` | Asistente IA (respuesta completa) |
+| `POST` | `/chat/stream` | Asistente IA (streaming SSE) |
 
 ---
 
@@ -321,14 +265,19 @@ claude login
 
 - [x] Backend: modelos, CRUD completo, IA, Telegram
 - [x] Frontend: grid interactivo, eventos, gastos, dashboard, chat IA
+- [x] Color personalizado por tipo de planta
+- [x] Días hasta cosecha por planta individual
+- [x] Chat multi-turno con streaming y Markdown
+- [x] Soporte Google Gemini
+- [x] Autenticación con Neon Auth
+- [x] Despliegue en Render + Vercel + Neon
 - [ ] Subida y visualización de fotos
 - [ ] Recordatorios de cosecha vía Telegram (cron diario)
 - [ ] Análisis de fotos con modelo de visión
 - [ ] Histórico entre temporadas
 - [ ] Rotación de cultivos
 - [ ] PWA + modo offline
-- [ ] Docker Compose completo para NAS
 
 ---
 
-*HuertAI v0.1 · FastAPI + React + PostgreSQL · IA con suscripción Claude Pro*
+*HuertAI · FastAPI + React + PostgreSQL · Neon Auth · IA con Gemini / Claude*
