@@ -20,6 +20,7 @@ export default function GardenPage() {
     const [expenses, setExpenses] = useState<Expense[]>([])
     const [newName, setNewName] = useState('')
     const [loading, setLoading] = useState(true)
+    const [loadError, setLoadError] = useState<string | null>(null)
     const [tab, setTab] = useState<'grid' | 'expenses'>('grid')
 
     useEffect(() => {
@@ -31,27 +32,37 @@ export default function GardenPage() {
     }, [id])
 
     async function loadGardens() {
-        const list = await getGardens()
-        setGardens(list)
-        if (!id && list.length > 0) navigate(`/gardens/${list[0].id}`, { replace: true })
-        setLoading(false)
+        try {
+            const list = await getGardens()
+            setGardens(list)
+            if (!id && list.length > 0) navigate(`/gardens/${list[0].id}`, { replace: true })
+        } catch (e) {
+            setLoadError(e instanceof Error ? e.message : 'Error al conectar con el servidor.')
+        } finally {
+            setLoading(false)
+        }
     }
 
     async function loadGardenData(gardenId: string) {
         setLoading(true)
-        const [g, r, p, pt, exp] = await Promise.all([
-            getGardens().then(list => list.find(g => g.id === gardenId) ?? null),
-            getRows(gardenId),
-            getPlantings(gardenId),
-            getPlantTypes(),
-            getExpenses(gardenId),
-        ])
-        setGarden(g)
-        setRows(r)
-        setPlantings(p)
-        setPlantTypes(pt)
-        setExpenses(exp)
-        setLoading(false)
+        try {
+            const [g, r, p, pt, exp] = await Promise.all([
+                getGardens().then(list => list.find(g => g.id === gardenId) ?? null),
+                getRows(gardenId),
+                getPlantings(gardenId),
+                getPlantTypes(),
+                getExpenses(gardenId),
+            ])
+            setGarden(g)
+            setRows(r)
+            setPlantings(p)
+            setPlantTypes(pt)
+            setExpenses(exp)
+        } catch (e) {
+            setLoadError(e instanceof Error ? e.message : 'Error al conectar con el servidor.')
+        } finally {
+            setLoading(false)
+        }
     }
 
     async function handleCreateGarden(e: React.FormEvent) {
@@ -81,6 +92,20 @@ export default function GardenPage() {
 
     if (loading) {
         return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">Cargando...</div>
+    }
+
+    if (loadError) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center space-y-3">
+                    <p className="text-red-500 font-medium">Error al conectar con el servidor</p>
+                    <p className="text-gray-400 text-sm font-mono">{loadError}</p>
+                    <button onClick={() => { setLoadError(null); setLoading(true); loadGardens() }} className="text-sm text-green-600 hover:underline">
+                        Reintentar
+                    </button>
+                </div>
+            </div>
+        )
     }
 
     return (
