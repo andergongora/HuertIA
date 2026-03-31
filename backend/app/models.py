@@ -84,6 +84,8 @@ class Expense(SQLModel, table=True):
 
 
 class User(SQLModel, table=True):
+    __tablename__ = "app_user"
+
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     email: str = Field(unique=True, index=True)
     hashed_password: str
