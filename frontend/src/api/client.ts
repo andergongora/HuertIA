@@ -1,10 +1,10 @@
 import type { Garden, Row, PlantType, Planting, PlantingEvent, Expense } from '../types'
+import { getToken } from './tokenStore'
 
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
-const TOKEN_KEY = 'huertai_token'
 
 function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem(TOKEN_KEY)
+  const token = getToken()
   const base = { 'Content-Type': 'application/json' }
   return token ? { ...base, Authorization: `Bearer ${token}` } : base
 }

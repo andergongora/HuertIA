@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, ReactNode } from 'react'
+import { getToken, saveToken, clearToken } from '../api/tokenStore'
 
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
-const TOKEN_KEY = 'huertai_token'
 
 interface AuthContextValue {
   token: string | null
@@ -13,12 +13,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY))
-
-  useEffect(() => {
-    if (token) localStorage.setItem(TOKEN_KEY, token)
-    else localStorage.removeItem(TOKEN_KEY)
-  }, [token])
+  const [token, setToken] = useState<string | null>(() => getToken())
 
   async function login(email: string, password: string) {
     const res = await fetch(`${BASE}/auth/login`, {
@@ -31,7 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(err.detail ?? 'Error al iniciar sesión')
     }
     const { access_token } = await res.json()
-    localStorage.setItem(TOKEN_KEY, access_token)
+    saveToken(access_token)
     setToken(access_token)
   }
 
@@ -46,11 +41,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(err.detail ?? 'Error al registrarse')
     }
     const { access_token } = await res.json()
-    localStorage.setItem(TOKEN_KEY, access_token)
+    saveToken(access_token)
     setToken(access_token)
   }
 
   function logout() {
+    clearToken()
     setToken(null)
   }
 
