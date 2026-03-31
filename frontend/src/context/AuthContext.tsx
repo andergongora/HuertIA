@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(err.detail ?? 'Error al iniciar sesión')
     }
     const { access_token } = await res.json()
+    localStorage.setItem(TOKEN_KEY, access_token)
     setToken(access_token)
   }
 
@@ -45,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(err.detail ?? 'Error al registrarse')
     }
     const { access_token } = await res.json()
+    localStorage.setItem(TOKEN_KEY, access_token)
     setToken(access_token)
   }
 
