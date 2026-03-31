@@ -1,11 +1,10 @@
 from datetime import datetime, timedelta
-from passlib.context import CryptContext
+import bcrypt
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer = HTTPBearer()
 
 ALGORITHM = "HS256"
@@ -13,11 +12,11 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 días
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    return bcrypt.checkpw(plain.encode(), hashed.encode())
 
 
 def create_access_token(user_id: str, email: str) -> str:
