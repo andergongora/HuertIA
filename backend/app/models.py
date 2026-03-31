@@ -81,3 +81,10 @@ class Expense(SQLModel, table=True):
     amount: float
     description: str
     date: date_type = Field(default_factory=date_type.today)
+
+
+class User(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    email: str = Field(unique=True, index=True)
+    hashed_password: str
+    created_at: datetime = Field(default_factory=datetime.now)

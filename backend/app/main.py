@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 import os
 from app.config import settings
 from app.database import create_db_and_tables
-from app.routes import gardens, crops, events, expenses, chat
+from app.routes import gardens, crops, events, expenses, chat, auth
 
 
 @asynccontextmanager
@@ -33,6 +33,7 @@ if os.path.isdir(settings.photos_directory):
         "/photos", StaticFiles(directory=settings.photos_directory), name="photos"
     )
 
+app.include_router(auth.router)
 app.include_router(gardens.router, tags=["gardens"])
 app.include_router(crops.router, tags=["plantings"])
 app.include_router(events.router, tags=["events"])
