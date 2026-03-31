@@ -18,6 +18,7 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
     jwt_secret_key: str = "changeme-use-a-long-random-secret-in-production"
+    admin_key: str = ""  # clave para crear usuarios
 
     model_config = {"env_file": ".env"}
 

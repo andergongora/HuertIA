@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Header
 from sqlmodel import Session, select
 from pydantic import BaseModel, EmailStr
 from app.database import get_session
 from app.models import User
 from app.security import hash_password, verify_password, create_access_token
+from app.config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -24,7 +25,13 @@ class TokenResponse(BaseModel):
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-def register(body: RegisterRequest, session: Session = Depends(get_session)):
+def register(
+    body: RegisterRequest,
+    x_admin_key: str | None = Header(default=None),
+    session: Session = Depends(get_session),
+):
+    if not settings.admin_key or x_admin_key != settings.admin_key:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No autorizado")
     existing = session.exec(select(User).where(User.email == body.email)).first()
     if existing:
         raise HTTPException(status_code=400, detail="El email ya está registrado")

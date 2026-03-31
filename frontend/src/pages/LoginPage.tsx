@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function LoginPage() {
-  const { login, register } = useAuth()
+  const { login } = useAuth()
   const navigate = useNavigate()
-  const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -16,8 +15,7 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      if (mode === 'login') await login(email, password)
-      else await register(email, password)
+      await login(email, password)
       navigate('/gardens', { replace: true })
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error inesperado')
@@ -33,27 +31,6 @@ export default function LoginPage() {
           <span className="text-4xl">🌿</span>
           <h1 className="text-2xl font-bold text-green-800 mt-2">HuertAI</h1>
           <p className="text-sm text-gray-500 mt-1">Tu huerto inteligente</p>
-        </div>
-
-        <div className="flex rounded-lg bg-green-100 p-1 mb-6">
-          <button
-            type="button"
-            onClick={() => { setMode('login'); setError('') }}
-            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
-              mode === 'login' ? 'bg-white text-green-800 shadow-sm' : 'text-green-700'
-            }`}
-          >
-            Entrar
-          </button>
-          <button
-            type="button"
-            onClick={() => { setMode('register'); setError('') }}
-            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
-              mode === 'register' ? 'bg-white text-green-800 shadow-sm' : 'text-green-700'
-            }`}
-          >
-            Registrarse
-          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -76,7 +53,7 @@ export default function LoginPage() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-              placeholder={mode === 'register' ? 'Mínimo 8 caracteres' : '••••••••'}
+              placeholder="••••••••"
             />
           </div>
 
@@ -89,7 +66,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium py-2 rounded-lg transition-colors"
           >
-            {loading ? 'Cargando...' : mode === 'login' ? 'Entrar' : 'Crear cuenta'}
+            {loading ? 'Cargando...' : 'Entrar'}
           </button>
         </form>
       </div>
