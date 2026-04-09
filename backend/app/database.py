@@ -5,6 +5,8 @@ engine = create_engine(
     settings.database_url,
     echo=settings.debug,
     connect_args={"sslmode": "require"} if "neon" in settings.database_url else {},
+    pool_pre_ping=True,
+    pool_recycle=300,
 )
 
 
