@@ -1,5 +1,5 @@
 import type { Garden, Row, PlantType, Planting, PlantingEvent, Expense } from '../types'
-import { getToken } from './tokenStore'
+import { getToken, triggerUnauthorized } from './tokenStore'
 
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
@@ -9,9 +9,14 @@ function authHeaders(): Record<string, string> {
   return token ? { ...base, Authorization: `Bearer ${token}` } : base
 }
 
+function handleError(res: Response, method: string, path: string): never {
+  if (res.status === 401) triggerUnauthorized()
+  throw new Error(`${method} ${path} → ${res.status}`)
+}
+
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { headers: authHeaders() })
-  if (!res.ok) throw new Error(`GET ${path} → ${res.status}`)
+  if (!res.ok) handleError(res, 'GET', path)
   return res.json()
 }
 
@@ -21,7 +26,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
     headers: authHeaders(),
     body: JSON.stringify(body),
   })
-  if (!res.ok) throw new Error(`POST ${path} → ${res.status}`)
+  if (!res.ok) handleError(res, 'POST', path)
   return res.json()
 }
 
@@ -31,13 +36,13 @@ async function patch<T>(path: string, body: unknown): Promise<T> {
     headers: authHeaders(),
     body: JSON.stringify(body),
   })
-  if (!res.ok) throw new Error(`PATCH ${path} → ${res.status}`)
+  if (!res.ok) handleError(res, 'PATCH', path)
   return res.json()
 }
 
 async function del(path: string): Promise<void> {
   const res = await fetch(`${BASE}${path}`, { method: 'DELETE', headers: authHeaders() })
-  if (!res.ok) throw new Error(`DELETE ${path} → ${res.status}`)
+  if (!res.ok) handleError(res, 'DELETE', path)
 }
 
 // Gardens

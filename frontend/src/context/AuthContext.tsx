@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, ReactNode } from 'react'
-import { getToken, saveToken, clearToken } from '../api/tokenStore'
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { getToken, saveToken, clearToken, setOnUnauthorized } from '../api/tokenStore'
 
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
@@ -14,6 +14,13 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => getToken())
+
+  useEffect(() => {
+    setOnUnauthorized(() => {
+      clearToken()
+      setToken(null)
+    })
+  }, [])
 
   async function login(email: string, password: string) {
     const res = await fetch(`${BASE}/auth/login`, {
